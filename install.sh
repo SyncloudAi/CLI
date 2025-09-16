@@ -5,7 +5,7 @@
 set -euo pipefail
 
 APP="syncloud"
-REPO="SyncloudAi/syncloud"
+REPO="Gggggggggbbb/syncloudAi"
 VERSION="${VERSION:-latest}"   # set VERSION=v0.1.0 to pin
 
 say(){ printf "==> %s\n" "$*"; }
