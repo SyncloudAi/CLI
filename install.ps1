@@ -4,7 +4,7 @@
 #   irm https://raw.githubusercontent.com/SyncloudAi/syncloud/main/install.ps1 | iex
 
 param(
-  [string]$Repo    = ""Gggggggggbbb/syncloudAi"",
+  [string]$Repo    = "Gggggggggbbb/syncloudAi",
   [string]$App     = "syncloud",
   [string]$Version = "latest"   # or "v0.1.0"
 )
