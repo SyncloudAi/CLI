@@ -1,16 +1,14 @@
-## Hi there 👋
+# Syncloud Installer
 
-<!--
-**SyncloudAi/syncloudAi** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+This repository provides the installer scripts for the **Syncloud CLI**.  
+The CLI helps DevOps teams deploy and manage infrastructure quickly with Terraform and AWS.
 
-Here are some ideas to get you started:
+---
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## 🚀 Install
+
+### Windows (PowerShell)
+powershell
+irm https://raw.githubusercontent.com/SyncloudAi/syncloud/main/install.ps1 | iex
+### macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/SyncloudAi/syncloud/main/install.sh | bash
