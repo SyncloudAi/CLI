@@ -77,8 +77,7 @@ Say "Downloading $assetUrl"
 Invoke-WebRequest -Uri $assetUrl -OutFile $zip -UseBasicParsing
 
 Say "Extracting to $TargetDir"
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::ExtractToDirectory($zip, $TargetDir, $true)
+Expand-Archive -LiteralPath $zip -DestinationPath $TargetDir -Force
 
 # --- Ensure PATH
 $Scope = if (IsAdmin) { "Machine" } else { "User" }
@@ -104,7 +103,7 @@ function Ensure-Terraform {
   $tfUrl = "https://releases.hashicorp.com/terraform/$tfVer/terraform_${tfVer}_windows_${ARCH}.zip"
   Say "Downloading Terraform $tfVer"
   Invoke-WebRequest -Uri $tfUrl -OutFile $tfZip -UseBasicParsing
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($tfZip, $TargetDir, $true)
+  Expand-Archive -LiteralPath $tfZip -DestinationPath $TargetDir -Force
 }
 
 function Ensure-AwsCli {
