@@ -11,7 +11,7 @@ irm get.syncloud.ai | iex
 
 curl -fsSL get.syncloud.ai/sh | bash
 
-If Terraform or AWS CLI are not installed, the installer will prompt you to install them automatically.
+***If Terraform or AWS CLI are not installed, the installer will prompt you to install them automatically.***
 
 🔒 Security Note
 
@@ -77,4 +77,5 @@ AWS account & credentials (aws configure)
 
 
 If Terraform or AWS CLI are not installed, the installer will prompt you to install them automatically.
+
 
