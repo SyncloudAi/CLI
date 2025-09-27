@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION="v0.1.0"
+VERSION="v0.2.0"
 REPO="Gggggggggbbb/syncloudAi"
 
 echo "==> Installing Syncloud CLI ($VERSION) from $REPO"
@@ -65,3 +65,4 @@ else
 fi
 
 echo "✅ Installation finished. Run 'syncloud --help' to get started."
+
