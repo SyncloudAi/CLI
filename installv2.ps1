@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "v0.1.0",
+    [string]$Version = "v0.2.0",
     [string]$Repo = "Gggggggggbbb/syncloudAi"
 )
 
@@ -65,3 +65,4 @@ if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
 }
 
 Write-Output "✅ Installation finished. Run 'syncloud --help' to get started."
+
