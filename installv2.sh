@@ -24,8 +24,17 @@ tar -xzf "/tmp/$ASSET" -C "$INSTALL_DIR"
 rm "/tmp/$ASSET"
 
 echo "==> Syncloud installed at $INSTALL_DIR"
-echo "Make sure $INSTALL_DIR is in your PATH"
 export PATH="$INSTALL_DIR:$PATH"
+
+# Persist PATH for future shells
+if [[ $SHELL == *"zsh"* ]] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zprofile 2>/dev/null; then
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile
+  echo "==> Added $INSTALL_DIR to PATH in ~/.zprofile"
+fi
+if [[ $SHELL == *"bash"* ]] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.bashrc 2>/dev/null; then
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+  echo "==> Added $INSTALL_DIR to PATH in ~/.bashrc"
+fi
 
 # --- Terraform ---
 if ! command -v terraform >/dev/null 2>&1; then
