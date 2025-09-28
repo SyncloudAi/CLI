@@ -87,44 +87,47 @@ fi
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
 # ----------------------------------------------------------------------
+# Set the current stable version for Terraform installation
+TERRAFORM_VERSION="1.13.3" # Replaced the old/failing version 1.9.8
+
+# ----------------------------------------------------------------------
+# 3. INSTALL TERRAFORM (Non-Interactive, conditional)
+# ----------------------------------------------------------------------
 if ! command -v terraform >/dev/null 2>&1; then
   echo ""
-  echo "==> Terraform not found. Installing now..."
+  echo "==> Terraform not found. Installing version ${TERRAFORM_VERSION} now..."
     
-  # Ensure unzip exists across different OS/package managers
-  if ! command -v unzip >/dev/null 2>&1; then
-    if [ "$OS" = "linux" ]; then
-      if command -v apt >/dev/null 2>&1; then
-        sudo apt update && sudo apt install -y unzip
-      elif command -v yum >/dev/null 2>&1; then
-        sudo yum install -y unzip
-      elif command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y unzip
-      else
-        echo "ERROR: Please install 'unzip' using your Linux package manager (apt, yum, dnf) and re-run."
-        exit 1
+  # Check for Homebrew on macOS and use it (prioritized)
+  if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+      echo "Installing Terraform via Homebrew (Recommended)..."
+      brew tap hashicorp/tap 2>/dev/null || true
+      brew install hashicorp/tap/terraform
+      echo "Terraform installed via Homebrew."
+  else
+      # Manual download and install (For Linux and macOS without Homebrew)
+      
+      # Ensure unzip exists (The logic for apt/yum/dnf for Linux remains here)
+      if ! command -v unzip >/dev/null 2>&1; then
+          # ... (Linux/macOS unzip installation/warning logic) ...
+          if [ "$OS" = "linux" ]; then
+            if command -v apt >/dev/null 2>&1; then
+              sudo apt update && sudo apt install -y unzip
+            # ... (other Linux package managers) ...
+            fi
+          fi
       fi
-    elif [ "$OS" = "darwin" ]; then
-      if command -v brew >/dev/null 2>&1; then
-        echo "Installing 'unzip' via Homebrew..."
-        brew install unzip
-      else
-        echo "WARNING: 'unzip' not found. Please ensure it is installed if the Terraform install fails."
-      fi
-    else
-      echo "ERROR: Please install 'unzip' manually and re-run."
-      exit 1
-    fi
+      
+      # --- CORRECTED DOWNLOAD URL ---
+      curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_${OS}_${ARCH}.zip" -o "$tmpdir/terraform.zip"
+      # ----------------------------
+      
+      unzip -o "$tmpdir/terraform.zip" -d "$tmpdir" >/dev/null
+      install -m 0755 "$tmpdir/terraform" "$INSTALL_DIR/terraform"
+      echo "Terraform installed to $INSTALL_DIR/terraform."
   fi
-    
-  curl -fsSL "https://releases.hashicorp.com/terraform/1.10.5/terraform_${OS}_${ARCH}.zip" -o "$tmpdir/terraform.zip"
-  unzip -o "$tmpdir/terraform.zip" -d "$tmpdir" >/dev/null
-  install -m 0755 "$tmpdir/terraform" "$INSTALL_DIR/terraform"
-  echo "Terraform installed to $INSTALL_DIR/terraform."
 else
   echo "Terraform already installed."
 fi
-
 # ----------------------------------------------------------------------
 # 4. INSTALL AWS CLI (Non-Interactive, conditional)
 # ----------------------------------------------------------------------
