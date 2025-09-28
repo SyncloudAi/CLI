@@ -18,35 +18,37 @@ if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
 ASSET="syncloud_${VERSION}_${OS}_${ARCH}.tar.gz"
 URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET"
 
-# temp workspace + cleanup
-tmpdir="$(mktemp -d)"; trap 'rm -rf "$tmpdir"' EXIT
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
 
 echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
 echo "==> Extracting to $INSTALL_DIR"
 tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
-# handle archives that contain just 'syncloud' at top level
+
+# Place binary with correct permissions
 if [ -f "$tmpdir/syncloud" ]; then
   install -m 0755 "$tmpdir/syncloud" "$INSTALL_DIR/syncloud"
 else
-  # fallback: first executable file at top
   binpath="$(find "$tmpdir" -maxdepth 1 -type f -perm -u+x -print -quit || true)"
-  [ -n "$binpath" ] || { echo "ERROR: syncloud binary not found in archive"; exit 1; }
+  if [ -z "${binpath}" ]; then
+    echo "ERROR: syncloud binary not found in archive"; exit 1
+  fi
   install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
 fi
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 export PATH="$INSTALL_DIR:$PATH"
 
-# Persist PATH for future shells (zsh default on macOS; bash if used)
-# zsh
+# Persist PATH for future shells
+# zsh (macOS default)
 if [ -n "${ZDOTDIR:-}" ]; then zprofile="$ZDOTDIR/.zprofile"; else zprofile="$HOME/.zprofile"; fi
 if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile" 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$zprofile"
   echo "==> Added $INSTALL_DIR to PATH in $zprofile"
 fi
-# bash (only if user uses bash)
+# bash (if used)
 if [ -n "${BASH_VERSION:-}" ]; then
   if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
@@ -110,4 +112,4 @@ else
   echo "AWS CLI already installed."
 fi
 
-echo "✅ Installation finished. Open a new terminal (or run 'exec \$SHELL -l') and try: syncloud --help"
+echo "✅ Installation finished. Open a new terminal (or run 'exec $SHELL -l') and try: syncloud --help"
