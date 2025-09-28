@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+IFS=$'\n\t'
 
 VERSION="v0.2.0"
 REPO="Gggggggggbbb/syncloudAi"
@@ -23,6 +24,7 @@ tar -xzf "/tmp/$ASSET" -C "$INSTALL_DIR"
 rm "/tmp/$ASSET"
 
 echo "==> Syncloud installed at $INSTALL_DIR"
+echo "Make sure $INSTALL_DIR is in your PATH"
 export PATH="$INSTALL_DIR:$PATH"
 
 # --- Terraform ---
@@ -65,4 +67,3 @@ else
 fi
 
 echo "✅ Installation finished. Run 'syncloud --help' to get started."
-
