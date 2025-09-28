@@ -117,7 +117,7 @@ if ! command -v terraform >/dev/null 2>&1; then
     fi
   fi
     
-  curl -fsSL "https://releases.hashicorp.com/terraform/1.9.8/terraform_${OS}_${ARCH}.zip" -o "$tmpdir/terraform.zip"
+  curl -fsSL "https://releases.hashicorp.com/terraform/1.10.5/terraform_${OS}_${ARCH}.zip" -o "$tmpdir/terraform.zip"
   unzip -o "$tmpdir/terraform.zip" -d "$tmpdir" >/dev/null
   install -m 0755 "$tmpdir/terraform" "$INSTALL_DIR/terraform"
   echo "Terraform installed to $INSTALL_DIR/terraform."
