@@ -6,6 +6,32 @@ param(
 # Set the latest stable version for Terraform
 $TERRAFORM_VERSION = "1.13.3" 
 
+# --- Function to Safely Update User PATH Permanently ---
+function Update-UserPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$NewPath
+    )
+    
+    # Get the current permanent User PATH from the Windows Registry
+    $CurrentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+
+    # Check if the path already exists to prevent adding duplicates
+    # We use a regex match on a split string to check for exact path matches
+    $PathArray = $CurrentPath -split ';' | Where-Object { $_ -ne '' }
+    if (-not ($PathArray | Select-String -Pattern ([regex]::Escape($NewPath)) -Quiet)) {
+        
+        # Add the new path to the list and join with semicolons
+        $UpdatedPath = ($PathArray + $NewPath) -join ';'
+        
+        # Write the new PATH back to the Windows Registry (User scope)
+        [Environment]::SetEnvironmentVariable("Path", $UpdatedPath, "User")
+        Write-Output "==> Added $NewPath to the permanent User PATH."
+    } else {
+        Write-Output "==> Path $NewPath already exists in the permanent User PATH. No change made."
+    }
+}
+# ---------------------------------------------
+
 Write-Output "==================================================="
 Write-Output "==> Syncloud Installation Script ($Version)"
 Write-Output "==================================================="
@@ -35,8 +61,9 @@ Expand-Archive -Path $zipFile -DestinationPath $installDir -Force
 Remove-Item $zipFile
 
 Write-Output "==> Syncloud installed successfully."
-# Update PATH for the current session
-$env:Path += ";$installDir"
+
+# Update PATH permanently
+Update-UserPath $installDir
 
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, Conditional)
@@ -44,7 +71,7 @@ $env:Path += ";$installDir"
 if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
     Write-Output "==> Terraform not found. Installing version $TERRAFORM_VERSION now..."
     
-    # CORRECTED URL: Uses a stable version and includes version in file name
+    # CORRECTED URL
     $tfUrl = "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_windows_amd64.zip"
     $tfZip = "$env:TEMP\terraform.zip"
     $tfDir = "$env:LOCALAPPDATA\Programs\Terraform"
@@ -58,10 +85,10 @@ if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
     Expand-Archive -Path $tfZip -DestinationPath $tfDir -Force
     Remove-Item $tfZip
 
-    # Update PATH for the current session
-    $env:Path += ";$tfDir"
+    # Update PATH permanently
+    Update-UserPath $tfDir
     
-    Write-Output "Terraform installed successfully at $tfDir"
+    Write-Output "Terraform installed successfully."
 } else {
     Write-Output "Terraform already installed."
 }
@@ -78,7 +105,7 @@ if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
     Write-Output "==> Downloading AWS CLI MSI..."
     Invoke-WebRequest "https://awscli.amazonaws.com/AWSCLIV2.msi" -OutFile $awsInstaller -UseBasicParsing
 
-    Write-Output "==> Running AWS CLI Installer (requires UAC/Admin rights for system changes)..."
+    Write-Output "==> Running AWS CLI Installer (Note: This may prompt for UAC/Admin approval)..."
     
     # Use msiexec with /qn for fully silent mode
     Start-Process msiexec.exe -Wait -ArgumentList "/i `"$awsInstaller`" /qn ALLUSERS=1"
@@ -95,7 +122,10 @@ if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
 Write-Output "==================================================="
 Write-Output "✅ Installation finished."
 Write-Output "==================================================="
-Write-Output "Note: For the new commands (syncloud, terraform, aws) to be recognized,"
-Write-Output "you must **OPEN A NEW PowerShell/Command Prompt window**."
+Write-Output "The commands are now saved permanently in your Windows PATH."
 Write-Output ""
-Write-Output "Run 'syncloud --help' to get started."
+Write-Output "⚠️ IMPORTANT: For the new commands to be available, you must:"
+Write-Output "  - **CLOSE ALL existing terminal windows** (PowerShell, Command Prompt, VS Code, etc.)."
+Write-Output "  - **OPEN A NEW terminal window.**"
+Write-Output ""
+Write-Output "Once complete, run 'syncloud --help' to get started."
