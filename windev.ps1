@@ -51,7 +51,7 @@ New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 # Detect OS/Arch
 $os = "windows"
 $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
-$asset = "syncloud_${Version}_${os}_${arch}.zip"
+$asset = "syndev_${Version}_${os}_${arch}.zip"
 $url = "https://github.com/$Repo/releases/download/$Version/$asset"
 
 Write-Output "==> Downloading Syncloud CLI from $url"
