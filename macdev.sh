@@ -47,7 +47,7 @@ tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
 # Place binary with correct permissions (Simplified fallback logic)
 if [ -f "$tmpdir/syndev" ]; then
-    install -m 0755 "$tmpdir/syndev" "$INSTALL_DIR/syncloud"
+    install -m 0755 "$tmpdir/syndev" "$INSTALL_DIR/syndev"
 else
     binpath=$(find "$tmpdir" -maxdepth 1 -type f -perm +111 | head -n 1)
     
