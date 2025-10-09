@@ -46,18 +46,18 @@ echo "==> Extracting to $INSTALL_DIR"
 tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
 # Place binary with correct permissions (Simplified fallback logic)
-if [ -f "$tmpdir/syncloud" ]; then
-    install -m 0755 "$tmpdir/syncloud" "$INSTALL_DIR/syncloud"
+if [ -f "$tmpdir/syndev" ]; then
+    install -m 0755 "$tmpdir/syndev" "$INSTALL_DIR/syncloud"
 else
     binpath=$(find "$tmpdir" -maxdepth 1 -type f -perm +111 | head -n 1)
     
     if [ -z "${binpath}" ]; then
-        echo "ERROR: syncloud binary not found in archive"; exit 1
+        echo "ERROR: syndev binary not found in archive"; exit 1
     fi
-    install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
+    install -m 0755 "$binpath" "$INSTALL_DIR/syndev"
 fi
 
-echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
+echo "==> Syndev installed at $INSTALL_DIR/syncloud"
 
 # Update PATH for the current session and force shell update
 export PATH="$INSTALL_DIR:$PATH"
