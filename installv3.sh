@@ -24,12 +24,12 @@ echo ""
 mkdir -p "$INSTALL_DIR"
 
 # Detect OS and Architecture
-OS="$(uname | tr '[:upper:]' '[:lower:]')"   # darwin | linux
-ARCH="$(uname -m)"
+OS=$(uname | tr '[:upper:]' '[:lower:]')   # darwin | linux
+ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
-  ARCH="amd64"
+    ARCH="amd64"
 elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-  ARCH="arm64"
+    ARCH="arm64"
 fi
 
 ASSET="syncloud_${VERSION}_${OS}_${ARCH}.tar.gz"
@@ -42,27 +42,34 @@ echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
 echo "==> Extracting archive"
-tar -xzf "$tmpdir/$ASSET" -C "$tmpdir" --strip-components=1 || tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
+# Try strip top-level folder; if not applicable, fall back to normal extract
+tar -xzf "$tmpdir/$ASSET" -C "$tmpdir" --strip-components=1 \
+  || tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
-# Try to locate the binary robustly:
-binpath=""
-
-# exact name preferred
+# Locate the binary robustly:
+# 1) exact 'syncloud' by name (any depth up to 3)
+# 2) pattern syncloud-* / syncloud_* (any depth up to 3)
+# 3) last resort: any single file (we'll install with 0755)
 binpath="$(find "$tmpdir" -maxdepth 3 -type f -name 'syncloud' -print -quit)"
-
-# pattern fallback
 if [ -z "${binpath:-}" ]; then
   binpath="$(find "$tmpdir" -maxdepth 3 -type f \( -name 'syncloud-*' -o -name 'syncloud_*' \) -print -quit)"
 fi
-
-# last resort: any single file
 if [ -z "${binpath:-}" ]; then
   binpath="$(find "$tmpdir" -maxdepth 3 -type f -print -quit)"
 fi
 
 if [ -z "${binpath:-}" ]; then
-  echo "ERROR: syncloud binary not found in archive"
-  exit 1
+  echo "ERROR: syncloud binary not found in archive"; exit 1
+fi
+
+# Sanity check: verify the binary matches OS/ARCH (prevents Exec format error)
+if command -v file >/dev/null 2>&1; then
+  detected="$(file -b "$binpath")"
+  case "$OS-$ARCH" in
+    linux-amd64) echo "$detected" | grep -qi 'ELF 64-bit.*x86-64' || { echo "❌ Wrong binary for Linux amd64. Got: $detected"; exit 1; } ;;
+    linux-arm64) echo "$detected" | grep -qi 'ELF 64-bit.*ARM aarch64' || { echo "❌ Wrong binary for Linux arm64. Got: $detected"; exit 1; } ;;
+    darwin-amd64|darwin-arm64) echo "$detected" | grep -qi 'Mach-O 64-bit' || { echo "❌ Wrong binary for macOS. Got: $detected"; exit 1; } ;;
+  esac
 fi
 
 echo "==> Installing to $INSTALL_DIR/syncloud"
@@ -74,41 +81,10 @@ command -v xattr >/dev/null 2>&1 && xattr -d com.apple.quarantine "$INSTALL_DIR/
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 
-# Refresh PATH for current shell and clear command cache
+# Update PATH for current session & refresh shell caches
 export PATH="$INSTALL_DIR:$PATH"
 hash -r 2>/dev/null || true
 [ -n "${ZSH_VERSION:-}" ] && rehash || true
-
-# Persist PATH for future shells
-zprofile="$HOME/.zprofile"
-[ -n "${ZDOTDIR:-}" ] && zprofile="$ZDOTDIR/.zprofile"
-if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile" 2>/dev/null; then
-  echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$zprofile"
-  echo "==> Added $INSTALL_DIR to PATH in $zprofile (for zsh login shells)"
-fi
-
-bash_profile="$HOME/.bashrc"
-if [ "$OS" = "darwin" ] && [ ! -f "$HOME/.bashrc" ]; then
-  bash_profile="$HOME/.bash_profile"
-fi
-if [ -n "${BASH_VERSION:-}" ]; then
-  if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$bash_profile" 2>/dev/null; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$bash_profile"
-    echo "==> Added $INSTALL_DIR to PATH in $bash_profile (for bash sessions)"
-  fi
-fi
-
-# ----------------------------------------------------------------------
-# 3. VERIFY INSTALLATION
-# ----------------------------------------------------------------------
-echo ""
-echo "==> Installed Syncloud version:"
-"$INSTALL_DIR/syncloud" --version 2>/dev/null || "$INSTALL_DIR/syncloud" -ver || true
-echo ""
-echo "==================================================="
-echo "✅ Syncloud CLI installation finished."
-echo "==================================================="
-
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
 # ----------------------------------------------------------------------
