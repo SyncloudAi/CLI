@@ -24,8 +24,9 @@ echo ""
 mkdir -p "$INSTALL_DIR"
 
 # Detect OS and Architecture
-OS=$(uname | tr '[:upper:]' '[:lower:]')   # darwin | linux
+OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
+
 if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
     ARCH="amd64"
 elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
@@ -41,53 +42,47 @@ trap 'rm -rf "$tmpdir"' EXIT
 echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
-echo "==> Extracting archive"
-extract_dir="$tmpdir/extract"
-mkdir -p "$extract_dir"
-# Try strip top-level folder; fall back to normal if not applicable
-tar -xzf "$tmpdir/$ASSET" -C "$extract_dir" --strip-components=1 \
-  || tar -xzf "$tmpdir/$ASSET" -C "$extract_dir"
+echo "==> Extracting to $INSTALL_DIR"
+tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
-# Locate the binary ONLY inside the extracted folder (avoid matching the .tar.gz)
-# 1) exact 'syncloud'
-# 2) patterns syncloud-* / syncloud_*
-# 3) last resort: any file (we install with 0755 anyway)
-binpath="$(find "$extract_dir" -maxdepth 5 -type f -name 'syncloud' -print -quit)"
-if [ -z "${binpath:-}" ]; then
-  binpath="$(find "$extract_dir" -maxdepth 5 -type f \( -name 'syncloud-*' -o -name 'syncloud_*' \) -print -quit)"
+# Place binary with correct permissions (Simplified fallback logic)
+if [ -f "$tmpdir/syncloud" ]; then
+    install -m 0755 "$tmpdir/syncloud" "$INSTALL_DIR/syncloud"
+else
+    binpath=$(find "$tmpdir" -maxdepth 1 -type f -perm +111 | head -n 1)
+    
+    if [ -z "${binpath}" ]; then
+        echo "ERROR: syncloud binary not found in archive"; exit 1
+    fi
+    install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
 fi
-if [ -z "${binpath:-}" ]; then
-  binpath="$(find "$extract_dir" -maxdepth 5 -type f -print -quit)"
-fi
-
-if [ -z "${binpath:-}" ]; then
-  echo "ERROR: syncloud binary not found in archive"; exit 1
-fi
-
-# Optional sanity: ensure OS/ARCH match (prevents Exec format error)
-if command -v file >/dev/null 2>&1; then
-  detected="$(file -b "$binpath")"
-  case "$OS-$ARCH" in
-    linux-amd64)  echo "$detected" | grep -qi 'ELF 64-bit.*x86-64'     || { echo "❌ Wrong binary for Linux amd64. Got: $detected"; exit 1; } ;;
-    linux-arm64)  echo "$detected" | grep -qi 'ELF 64-bit.*ARM aarch64' || { echo "❌ Wrong binary for Linux arm64. Got: $detected"; exit 1; } ;;
-    darwin-amd64|darwin-arm64)
-                  echo "$detected" | grep -qi 'Mach-O 64-bit'           || { echo "❌ Wrong binary for macOS. Got: $detected"; exit 1; } ;;
-  esac
-fi
-
-echo "==> Installing to $INSTALL_DIR/syncloud"
-rm -f "$INSTALL_DIR/syncloud"
-install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
-
-# Clear macOS quarantine flag if present (no-op on Linux)
-command -v xattr >/dev/null 2>&1 && xattr -d com.apple.quarantine "$INSTALL_DIR/syncloud" 2>/dev/null || true
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 
-# Refresh PATH and command cache
+# Update PATH for the current session and force shell update
 export PATH="$INSTALL_DIR:$PATH"
-hash -r 2>/dev/null || true
-[ -n "${ZSH_VERSION:-}" ] && rehash || true
+hash -r 2>/dev/null || true 
+
+# Persist PATH for future shells
+zprofile="$HOME/.zprofile"
+if [ -n "${ZDOTDIR:-}" ]; then zprofile="$ZDOTDIR/.zprofile"; fi
+
+if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile" 2>/dev/null; then
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$zprofile"
+  echo "==> Added $INSTALL_DIR to PATH in $zprofile (for zsh login shells)"
+fi
+
+bash_profile="$HOME/.bashrc"
+if [ "$OS" = "darwin" ] && [ ! -f "$HOME/.bashrc" ]; then
+    bash_profile="$HOME/.bash_profile"
+fi
+
+if [ -n "${BASH_VERSION:-}" ]; then
+  if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$bash_profile" 2>/dev/null; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$bash_profile"
+    echo "==> Added $INSTALL_DIR to PATH in $bash_profile (for bash sessions)"
+  fi
+fi
 
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
@@ -95,6 +90,9 @@ hash -r 2>/dev/null || true
 # Set the current stable version for Terraform installation
 TERRAFORM_VERSION="1.13.3" # Replaced the old/failing version 1.9.8
 
+# ----------------------------------------------------------------------
+# 3. INSTALL TERRAFORM (Non-Interactive, conditional)
+# ----------------------------------------------------------------------
 if ! command -v terraform >/dev/null 2>&1; then
   echo ""
   echo "==> Terraform not found. Installing version ${TERRAFORM_VERSION} now..."
