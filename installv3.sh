@@ -2,7 +2,7 @@
 set -euo pipefail # Ensures script exits immediately on errors (pipefail)
 IFS=$'\n\t'
 
-VERSION="v0.3.0"
+VERSION="v0.4.1"
 REPO="Gggggggggbbb/syncloudAi"
 INSTALL_DIR="$HOME/.local/bin"
 
