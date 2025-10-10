@@ -24,9 +24,8 @@ echo ""
 mkdir -p "$INSTALL_DIR"
 
 # Detect OS and Architecture
-OS=$(uname | tr '[:upper:]' '[:lower:]')
+OS=$(uname | tr '[:upper:]' '[:lower:]')   # darwin | linux
 ARCH=$(uname -m)
-
 if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
     ARCH="amd64"
 elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
@@ -42,47 +41,53 @@ trap 'rm -rf "$tmpdir"' EXIT
 echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
-echo "==> Extracting to $INSTALL_DIR"
-tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
+echo "==> Extracting archive"
+extract_dir="$tmpdir/extract"
+mkdir -p "$extract_dir"
+# If archive has a top-level folder, strip it; if not, the second tar runs.
+tar -xzf "$tmpdir/$ASSET" -C "$extract_dir" --strip-components=1 || tar -xzf "$tmpdir/$ASSET" -C "$extract_dir"
 
-# Place binary with correct permissions (Simplified fallback logic)
-if [ -f "$tmpdir/syncloud" ]; then
-    install -m 0755 "$tmpdir/syncloud" "$INSTALL_DIR/syncloud"
-else
-    binpath=$(find "$tmpdir" -maxdepth 1 -type f -perm +111 | head -n 1)
-    
-    if [ -z "${binpath}" ]; then
-        echo "ERROR: syncloud binary not found in archive"; exit 1
-    fi
-    install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
+# Robust binary discovery:
+# 1) exact 'syncloud' (any depth up to 5)
+# 2) patterns syncloud-* / syncloud_*
+# 3) last resort: any single file (we'll set mode on install)
+binpath="$(find "$extract_dir" -maxdepth 5 -type f -name 'syncloud' -print -quit)"
+if [ -z "${binpath:-}" ]; then
+  binpath="$(find "$extract_dir" -maxdepth 5 -type f \( -name 'syncloud-*' -o -name 'syncloud_*' \) -print -quit)"
 fi
+if [ -z "${binpath:-}" ]; then
+  binpath="$(find "$extract_dir" -maxdepth 5 -type f -print -quit)"
+fi
+
+if [ -z "${binpath:-}" ]; then
+  echo "ERROR: syncloud binary not found in archive"
+  exit 1
+fi
+
+# Sanity check to avoid Exec format error
+if command -v file >/dev/null 2>&1; then
+  detected="$(file -b "$binpath")"
+  case "$OS-$ARCH" in
+    linux-amd64)  echo "$detected" | grep -qi 'ELF 64-bit.*x86-64'     || { echo "❌ Wrong binary for Linux amd64. Got: $detected"; exit 1; } ;;
+    linux-arm64)  echo "$detected" | grep -qi 'ELF 64-bit.*ARM aarch64' || { echo "❌ Wrong binary for Linux arm64. Got: $detected"; exit 1; } ;;
+    darwin-amd64|darwin-arm64)
+                  echo "$detected" | grep -qi 'Mach-O 64-bit'           || { echo "❌ Wrong binary for macOS. Got: $detected"; exit 1; } ;;
+  esac
+fi
+
+echo "==> Installing to $INSTALL_DIR/syncloud"
+rm -f "$INSTALL_DIR/syncloud"               # clean replace
+install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
+
+# macOS quarantine (no-op elsewhere)
+command -v xattr >/dev/null 2>&1 && xattr -d com.apple.quarantine "$INSTALL_DIR/syncloud" 2>/dev/null || true
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 
-# Update PATH for the current session and force shell update
+# Refresh PATH & shell caches
 export PATH="$INSTALL_DIR:$PATH"
-hash -r 2>/dev/null || true 
-
-# Persist PATH for future shells
-zprofile="$HOME/.zprofile"
-if [ -n "${ZDOTDIR:-}" ]; then zprofile="$ZDOTDIR/.zprofile"; fi
-
-if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile" 2>/dev/null; then
-  echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$zprofile"
-  echo "==> Added $INSTALL_DIR to PATH in $zprofile (for zsh login shells)"
-fi
-
-bash_profile="$HOME/.bashrc"
-if [ "$OS" = "darwin" ] && [ ! -f "$HOME/.bashrc" ]; then
-    bash_profile="$HOME/.bash_profile"
-fi
-
-if [ -n "${BASH_VERSION:-}" ]; then
-  if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$bash_profile" 2>/dev/null; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$bash_profile"
-    echo "==> Added $INSTALL_DIR to PATH in $bash_profile (for bash sessions)"
-  fi
-fi
+hash -r 2>/dev/null || true
+[ -n "${ZSH_VERSION:-}" ] && rehash || true
 
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
