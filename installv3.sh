@@ -24,12 +24,13 @@ echo ""
 mkdir -p "$INSTALL_DIR"
 
 # Detect OS and Architecture
-OS="$(uname | tr '[:upper:]' '[:lower:]')"   # darwin | linux
-ARCH="$(uname -m)"
+OS=$(uname | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+
 if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
-  ARCH="amd64"
+    ARCH="amd64"
 elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-  ARCH="arm64"
+    ARCH="arm64"
 fi
 
 ASSET="syncloud_${VERSION}_${OS}_${ARCH}.tar.gz"
@@ -42,40 +43,30 @@ echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
 echo "==> Extracting to $INSTALL_DIR"
-# If the tar has a top-level folder, strip it. If not, harmless.
-tar -xzf "$tmpdir/$ASSET" -C "$tmpdir" --strip-components=1
+tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
-# Find the binary (prefer exact name), BSD/GNU compatible exec test
-binpath=""
+# Place binary with correct permissions (Simplified fallback logic)
 if [ -f "$tmpdir/syncloud" ]; then
-  binpath="$tmpdir/syncloud"
+    install -m 0755 "$tmpdir/syncloud" "$INSTALL_DIR/syncloud"
 else
-  # Look only in the top level after stripping; adjust to 2 if needed
-  binpath="$(find "$tmpdir" -maxdepth 1 -type f -perm -111 | head -n 1)"
+    binpath=$(find "$tmpdir" -maxdepth 1 -type f -perm +111 | head -n 1)
+    
+    if [ -z "${binpath}" ]; then
+        echo "ERROR: syncloud binary not found in archive"; exit 1
+    fi
+    install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
 fi
-
-if [ -z "${binpath:-}" ]; then
-  echo "ERROR: syncloud binary not found in archive"
-  exit 1
-fi
-
-# Remove old binary first, then install the new one
-rm -f "$INSTALL_DIR/syncloud"
-install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
-
-# Clear macOS quarantine flag if present (no-op elsewhere)
-command -v xattr >/dev/null 2>&1 && xattr -d com.apple.quarantine "$INSTALL_DIR/syncloud" 2>/dev/null || true
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 
-# Update PATH for the current session and refresh shell command cache
+# Update PATH for the current session and force shell update
 export PATH="$INSTALL_DIR:$PATH"
-hash -r 2>/dev/null || true
-[ -n "${ZSH_VERSION:-}" ] && rehash || true
+hash -r 2>/dev/null || true 
 
 # Persist PATH for future shells
 zprofile="$HOME/.zprofile"
-[ -n "${ZDOTDIR:-}" ] && zprofile="$ZDOTDIR/.zprofile"
+if [ -n "${ZDOTDIR:-}" ]; then zprofile="$ZDOTDIR/.zprofile"; fi
+
 if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$zprofile" 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$zprofile"
   echo "==> Added $INSTALL_DIR to PATH in $zprofile (for zsh login shells)"
@@ -83,15 +74,15 @@ fi
 
 bash_profile="$HOME/.bashrc"
 if [ "$OS" = "darwin" ] && [ ! -f "$HOME/.bashrc" ]; then
-  bash_profile="$HOME/.bash_profile"
+    bash_profile="$HOME/.bash_profile"
 fi
+
 if [ -n "${BASH_VERSION:-}" ]; then
   if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$bash_profile" 2>/dev/null; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$bash_profile"
     echo "==> Added $INSTALL_DIR to PATH in $bash_profile (for bash sessions)"
   fi
 fi
-
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
 # ----------------------------------------------------------------------
