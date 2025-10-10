@@ -41,17 +41,23 @@ trap 'rm -rf "$tmpdir"' EXIT
 echo "==> Downloading Syncloud CLI from $URL"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
-echo "==> Extracting to $INSTALL_DIR"
-# If the tar has a top-level folder, strip it. If not, harmless.
-tar -xzf "$tmpdir/$ASSET" -C "$tmpdir" --strip-components=1
+echo "==> Extracting archive"
+tar -xzf "$tmpdir/$ASSET" -C "$tmpdir" --strip-components=1 || tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
 
-# Find the binary (prefer exact name), BSD/GNU compatible exec test
+# Try to locate the binary robustly:
 binpath=""
-if [ -f "$tmpdir/syncloud" ]; then
-  binpath="$tmpdir/syncloud"
-else
-  # Look only in the top level after stripping; adjust to 2 if needed
-  binpath="$(find "$tmpdir" -maxdepth 1 -type f -perm -111 | head -n 1)"
+
+# exact name preferred
+binpath="$(find "$tmpdir" -maxdepth 3 -type f -name 'syncloud' -print -quit)"
+
+# pattern fallback
+if [ -z "${binpath:-}" ]; then
+  binpath="$(find "$tmpdir" -maxdepth 3 -type f \( -name 'syncloud-*' -o -name 'syncloud_*' \) -print -quit)"
+fi
+
+# last resort: any single file
+if [ -z "${binpath:-}" ]; then
+  binpath="$(find "$tmpdir" -maxdepth 3 -type f -print -quit)"
 fi
 
 if [ -z "${binpath:-}" ]; then
@@ -59,7 +65,7 @@ if [ -z "${binpath:-}" ]; then
   exit 1
 fi
 
-# Remove old binary first, then install the new one
+echo "==> Installing to $INSTALL_DIR/syncloud"
 rm -f "$INSTALL_DIR/syncloud"
 install -m 0755 "$binpath" "$INSTALL_DIR/syncloud"
 
@@ -68,7 +74,7 @@ command -v xattr >/dev/null 2>&1 && xattr -d com.apple.quarantine "$INSTALL_DIR/
 
 echo "==> Syncloud installed at $INSTALL_DIR/syncloud"
 
-# Update PATH for the current session and refresh shell command cache
+# Refresh PATH for current shell and clear command cache
 export PATH="$INSTALL_DIR:$PATH"
 hash -r 2>/dev/null || true
 [ -n "${ZSH_VERSION:-}" ] && rehash || true
@@ -91,6 +97,18 @@ if [ -n "${BASH_VERSION:-}" ]; then
     echo "==> Added $INSTALL_DIR to PATH in $bash_profile (for bash sessions)"
   fi
 fi
+
+# ----------------------------------------------------------------------
+# 3. VERIFY INSTALLATION
+# ----------------------------------------------------------------------
+echo ""
+echo "==> Installed Syncloud version:"
+"$INSTALL_DIR/syncloud" --version 2>/dev/null || "$INSTALL_DIR/syncloud" -ver || true
+echo ""
+echo "==================================================="
+echo "✅ Syncloud CLI installation finished."
+echo "==================================================="
+
 # ----------------------------------------------------------------------
 # 3. INSTALL TERRAFORM (Non-Interactive, conditional)
 # ----------------------------------------------------------------------
