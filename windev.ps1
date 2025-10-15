@@ -33,19 +33,19 @@ function Update-UserPath {
 # ---------------------------------------------
 
 Write-Output "==================================================="
-Write-Output "==> Syncloud Installation Script ($Version)"
+Write-Output "==> Syndev Installation Script ($Version)"
 Write-Output "==================================================="
 Write-Output "Installing the following components:"
-Write-Output "  - 🔑 Syncloud CLI (to local AppData)"
+Write-Output "  - 🔑 Syndev CLI (to local AppData)"
 Write-Output "  - 🌎 Terraform (version $TERRAFORM_VERSION, if missing)"
 Write-Output "  - ☁️ AWS CLI (if missing)"
 Write-Output ""
 
 # ----------------------------------------------------------------------
-# 2. SYNCLOUD CLI INSTALLATION (Main Binary)
+# 2. Syndev CLI INSTALLATION (Main Binary)
 # ----------------------------------------------------------------------
 $installDir = "$env:LOCALAPPDATA\Programs\syncloud"
-Write-Output "==> Installing Syncloud CLI to $installDir"
+Write-Output "==> Installing Syndev CLI to $installDir"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 
 # Detect OS/Arch
@@ -54,13 +54,13 @@ $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
 $asset = "syndev_${Version}_${os}_${arch}.zip"
 $url = "https://github.com/$Repo/releases/download/$Version/$asset"
 
-Write-Output "==> Downloading Syncloud CLI from $url"
+Write-Output "==> Downloading Syndev CLI from $url"
 $zipFile = "$env:TEMP\$asset"
 Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
 Expand-Archive -Path $zipFile -DestinationPath $installDir -Force
 Remove-Item $zipFile
 
-Write-Output "==> Syncloud installed successfully."
+Write-Output "==> Syndev installed successfully."
 
 # Update PATH permanently
 Update-UserPath $installDir
@@ -128,4 +128,4 @@ Write-Output "⚠️ IMPORTANT: For the new commands to be available, you must:"
 Write-Output "  - **CLOSE ALL existing terminal windows** (PowerShell, Command Prompt, VS Code, etc.)."
 Write-Output "  - **OPEN A NEW terminal window.**"
 Write-Output ""
-Write-Output "Once complete, run 'syncloud --help' to get started."
+Write-Output "Once complete, run 'Syndev --help' to get started."
