@@ -1,6 +1,6 @@
 param(
     [string]$Version = "dev0.4.4",
-    [string]$Repo = "Gggggggggbbb/syncloudAi"
+    [string]$Repo = "SyncloudAi/CLI"
 )
 
 # Set the latest stable version for Terraform
