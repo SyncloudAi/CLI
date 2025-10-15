@@ -54,7 +54,7 @@ $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
 $asset = "syndev_${Version}_${os}_${arch}.zip"
 $url = "https://github.com/$Repo/releases/download/$Version/$asset"
 
-Write-Output "==> Downloading Syndev CLI from $url"
+Write-Output "==> Downloading Syndev CLI from Syncloud.AI"
 $zipFile = "$env:TEMP\$asset"
 Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
 Expand-Archive -Path $zipFile -DestinationPath $installDir -Force
