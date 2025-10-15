@@ -3,23 +3,23 @@ set -euo pipefail # Ensures script exits immediately on errors (pipefail)
 IFS=$'\n\t'
 
 VERSION="dev0.4.4"
-REPO="Gggggggggbbb/syncloudAi"
+REPO="SyncloudAi/CLI"
 INSTALL_DIR="$HOME/.local/bin"
 
 # ----------------------------------------------------------------------
 # 1. ANNOUNCEMENT
 # ----------------------------------------------------------------------
 echo "==================================================="
-echo "==> Syncloud Installation Script ($VERSION)"
+echo "==> Syndev Installation Script ($VERSION)"
 echo "==================================================="
 echo "Installing the following components:"
-echo "  - 🔑 Syncloud CLI (to $INSTALL_DIR)"
+echo "  - 🔑 Syndev CLI (to $INSTALL_DIR)"
 echo "  - 🌎 Terraform (if missing)"
 echo "  - ☁️ AWS CLI (if missing)"
 echo ""
 
 # ----------------------------------------------------------------------
-# 2. SYNCLOUD CLI INSTALLATION (Main Binary)
+# 2. Syndev CLI INSTALLATION (Main Binary)
 # ----------------------------------------------------------------------
 mkdir -p "$INSTALL_DIR"
 
@@ -39,7 +39,7 @@ URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-echo "==> Downloading Syncloud CLI from $URL"
+echo "==> Downloading Syndev CLI from Syncloud.AI"
 curl -fsSL "$URL" -o "$tmpdir/$ASSET"
 
 echo "==> Extracting to $INSTALL_DIR"
