@@ -2,7 +2,7 @@
 set -euo pipefail # Ensures script exits immediately on errors (pipefail)
 IFS=$'\n\t'
 
-VERSION="dev0.4.5"
+VERSION="dev0.4.7"
 REPO="SyncloudAi/CLI"
 INSTALL_DIR="$HOME/.local/bin"
 
