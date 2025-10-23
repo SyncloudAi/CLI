@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "dev0.4.7",
+    [string]$Version = "dev0.4.8",
     [string]$Repo = "SyncloudAi/CLI"
 )
 
